@@ -12,6 +12,7 @@ namespace Lab3 {
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Math;
+    open Microsoft.Quantum.Diagnostics;
 
     /// # Summary
     /// In this exercise, you are given two qubits. Both qubits are in
@@ -39,7 +40,6 @@ namespace Lab3 {
     operation Exercise1 (qubitA : Qubit, qubitB : Qubit) : Unit {
         
         SWAP(qubitA, qubitB);
-
     }
 
 
@@ -112,19 +112,13 @@ namespace Lab3 {
     /// # Remarks
     /// This investigates how to prepare the Bell states.
     operation Exercise3 (registers : Qubit[][]) : Unit {
-        // Hint: you can start by putting all four registers into the state
-        // 1/√2(|00> + |11>), then build the final state for each register 
-        // from there.
-
         let nQR = Length(registers);
         for idx in 0 .. nQR - 1 {
             let r = registers[idx];
             H(r[0]);
             CNOT(r[0], r[1]);
         }
-
-        I(registers[0][0]);
-
+        //manual bit manipulate
         Z(registers[1][0]);
 
         X(registers[2][1]);
@@ -207,10 +201,8 @@ namespace Lab3 {
     /// # Remarks
     /// This investigates applying controlled operations besides CNOT.
     operation Exercise6 (register : Qubit[]) : Unit {
-        // Hint: Think about what happens to register[1] based on the value of
-        // register[0].
         H(register[0]);
-        CNOT(register[0], register[1]);
+        Controlled X([register[0]], register[1]);
 
         Controlled X([register[0]], register[1]);
         Controlled H([register[0]], register[1]);
@@ -238,11 +230,6 @@ namespace Lab3 {
     /// This investigates how to implement zero-controlled (a.k.a. anti-
     /// controlled) gates in Q#.
     operation Exercise7 (register : Qubit[], target: Qubit) : Unit {
-        // Hint: The "Controlled" syntax does not provide an interface for
-        // specifying zero-controls; it assumes all one-controls. You need to
-        // find a way to associate the target being |1> with the controls being
-        // |001> rather than |111>.
-
         H(register[0]);
         H(register[1]);
         H(register[2]);
@@ -274,20 +261,14 @@ namespace Lab3 {
     ///  - Single- and multi-qubit gates
     ///  - Phase
     operation Exercise8 (register : Qubit[]) : Unit {
-        // Hint: Allocating one or more "scratch" qubits may make the problem
-        // more approachable. It is possible to prepare this state without
-        // using any extra qubits, but this is not necessary.
-
+        // We split the probability mass twice
         H(register[0]);
-        CNOT(register[0], register[1]);
-        CNOT(register[0], register[2]);
-
         Controlled H([register[0]], register[1]);
-        Controlled H([register[0]], register[2]);
         
-        Controlled X([register[0]], register[1]);
-        Controlled Z([register[1]], register[0]);
-        Controlled X([register[0]], register[1]);
+        // We change the necessary phase and relabel
+        Controlled Z([register[0]], register[1]);
+        CNOT(register[0], register[1]);
+        Controlled X([register[1]], register[2]);
     }
 
 
@@ -340,7 +321,7 @@ namespace Lab3 {
 
         X(register[0]);
         Controlled H([register[0]], register[1]);
-        CNOT(register[1], register[2]);
+        Controlled X([register[1]], register[2]);
         Controlled X([register[0]], register[2]);
         X(register[0]);
     }
@@ -355,11 +336,11 @@ namespace Lab3 {
     ///
     ///  Index  |  Value
     /// ------- | -------
-    ///    0    |    0
+    ///    0    |    0    | 000
     ///    1    |   1/2√2 | 001
     ///    2    |    1/2  | 010
     ///    3    |   1/2√2 | 011
-    ///    4    |    0   
+    ///    4    |    0    | 100
     ///    5    |  -1/2√2 | 101
     ///    6    |   -1/2  | 110
     ///    7    |  -1/2√2 | 111
@@ -386,12 +367,17 @@ namespace Lab3 {
     /// this is a good first hint.
     operation Challenge3 (register : Qubit[]) : Unit {
         
-        // inject probability mass from |0> to (1/2)[ |2> + |6>]
-        H(register[1]);
-        
-        Controlled H([register[1], register[0]]);
-        Co
-
+        //First we apply  XH to get |-> state on first qubit
+        X(register[0]);
+        H(register[0]);
+        // Now we split probability mass again in two
+        H(register[2]);
+        // We conditionally do the last probability mass split
+        Controlled H([register[2]], register[1]);
+        // We flip bits as necessary to reassign
+        X(register[2]);
+        Controlled X([register[2]], register[1]);
+        X(register[2]);
     }
 
 
@@ -402,14 +388,14 @@ namespace Lab3 {
     ///
     ///  Index  |  Value
     /// ------- | -------
-    ///    0    |    1
-    ///    1    |   1/√2
-    ///    2    |    0
-    ///    3    |  -1/√2
-    ///    4    |   -1
-    ///    5    |  -1/√2
-    ///    6    |    0
-    ///    7    |   1/√2
+    ///    0    |    1/2 | 000
+    ///    1    |   1/2√2| 001
+    ///    2    |    0   | 010
+    ///    3    |  -1/2√2| 011
+    ///    4    |   -1/2 | 100
+    ///    5    |  -1/2√2| 101
+    ///    6    |    0   | 110
+    ///    7    |   1/2√2| 111
     ///
     /// Once again, these values aren't normalized, so you will have to
     /// normalize them before using them as state amplitudes.
@@ -418,7 +404,18 @@ namespace Lab3 {
     /// ## register
     /// A three-qubit register in the |000> state.
     operation Challenge4 (register : Qubit[]) : Unit {
-        // TODO
-        fail "Not implemented.";
+
+        // We split probability mass
+        H(register[2]);
+        Controlled X([register[2]], register[0]);
+        X(register[2]);
+
+        H(register[0]);
+        // set up | - > state for negative phase
+        Controlled X([register[2]], register[1]);
+        Controlled H([register[2]], register[1]);
+
+        // Relabelling trick to finish
+        Controlled X([register[2], register[0]], register[1]);
     }
 }
