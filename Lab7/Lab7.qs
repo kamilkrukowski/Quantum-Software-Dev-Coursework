@@ -13,6 +13,7 @@ namespace Lab7 {
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Measurement;
     open Microsoft.Quantum.Arithmetic;
+    open Microsoft.Quantum.Arrays;
 
 
     /// # Summary
@@ -161,8 +162,14 @@ namespace Lab7 {
         register : Qubit[],
         target : Qubit
     ) : Unit {
-        // TODO
-        fail "Not implemented.";
+
+        oracle(register, target);
+        within {
+        ApplyToEachA(H, register);
+        ApplyToEachA(X, register);
+    } apply {
+        Controlled Z(Most(register), Tail(register));
+    }
     }
 
 
@@ -194,7 +201,27 @@ namespace Lab7 {
         // Grover search. It's provided here for your convenience.
         let iterations = Round(PI() / 4.0 * Sqrt(IntAsDouble(numberOfQubits)));
 
-        // TODO
-        fail "Not implemented.";
+        use qubits = Qubit[numberOfQubits];
+        use target = Qubit();
+        ApplyToEach(H, qubits);
+        for i in 0 .. iterations - 1
+        {
+            oracle(qubits, target);
+            Exercise4_GroverIteration(oracle, qubits, target);
+        }
+
+        mutable rez = [];
+        for i in 0 .. numberOfQubits - 1
+        {
+            let meas = ResultAsBool(M(qubits[i]));
+            set rez += [meas];
+            if (meas){
+                X(qubits[i]);
+            }
+        }
+        if (ResultAsBool(M(target))) {
+            X(target);
+        }
+        return rez;
     }
 }
